@@ -100,7 +100,7 @@ a1b2c3d4e5f
 treb7uchet";
 
     #[test]
-    fn test_01_numbers_vector() {
+    fn day1_part1_numbers_vector() {
         let line = INPUT.lines().next().map(parse_string_part_1);
         assert_eq!(line, Some(12));
         let numbers_vector = INPUT.lines().map(parse_string_part_1).collect::<Vec<u32>>();
@@ -119,12 +119,12 @@ zoneight234
 7pqrstsixteen";
 
     #[test]
-    fn test_02_test_1() {
+    fn day1_part2_parse_single_line() {
         let line = INPUT2.lines().next().map(parse_string_part_2);
         assert_eq!(line, Some(29));
     }
     #[test]
-    fn test_02_test_2() {
+    fn day1_part2_parse_all_lines_and_sum() {
         let numbers_vector = INPUT2
             .lines()
             .map(parse_string_part_2)

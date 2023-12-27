@@ -127,7 +127,7 @@ Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red
 Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
 Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
     #[test]
-    fn test_parse_cube_counts_and_id() {
+    fn day2_part1_parse_cube_counts_and_id() {
         assert_eq!(
             INPUT
                 .lines()
@@ -146,7 +146,7 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
     }
 
     #[test]
-    fn test_filter_impossible_games() {
+    fn day2_part1_filter_impossible_games() {
         let winning_indeces_sum: u32 = INPUT
             .lines()
             .filter_map(|l| {
@@ -171,7 +171,7 @@ Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red
 Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green";
 
     #[test]
-    fn test_power_of_test_games() {
+    fn day2_part2_power_of_test_games() {
         let power: u32 = INPUT2.lines().map(parse_game_power).sum();
         assert_eq!(power, 2286);
     }
