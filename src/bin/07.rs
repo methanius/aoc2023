@@ -1,34 +1,169 @@
-use std::{cmp::Ordering, collections::HashMap};
+use std::collections::HashMap;
 
 fn main() {
     let text =
         std::fs::read_to_string("data/07a.txt").expect("Couldn't read file at hard-coded path!");
     println!("Part one result: {:?}", part1(&text));
-    // println!("Part two result: {:?}", part2(&text));
+    println!("Part two result: {:?}", part2(&text));
+}
+
+fn part2(block: &str) -> usize {
+    Game::CamelPokerWithJokers.winnings_in_block(block)
 }
 
 fn part1(block: &str) -> usize {
-    let mut games: Vec<Game> = block.lines().map(Game::from_line).collect();
-    games.sort();
-    games
-        .iter()
-        .enumerate()
-        .fold(0, |acc, (rank, game)| acc + (rank + 1) * game.bid)
+    Game::CamelPokerWithoutJokers.winnings_in_block(block)
 }
 
-#[derive(Debug, Clone)]
-struct Game {
-    hand: Hand,
-    bid: usize,
+enum Game {
+    CamelPokerWithoutJokers,
+    CamelPokerWithJokers,
 }
 
-#[derive(Debug, Clone, PartialOrd)]
-struct Hand {
-    handtype: HandType,
-    cards: Vec<Card>,
+impl Game {
+    fn get_card_ranks(&self, cards_in_hand: &[Card]) -> Vec<usize> {
+        match self {
+            Self::CamelPokerWithoutJokers => {
+                let matcher = [
+                    Card::Two,
+                    Card::Three,
+                    Card::Four,
+                    Card::Five,
+                    Card::Six,
+                    Card::Seven,
+                    Card::Eight,
+                    Card::Nine,
+                    Card::T,
+                    Card::J,
+                    Card::Q,
+                    Card::K,
+                    Card::A,
+                ];
+                cards_in_hand
+                    .iter()
+                    .map(|&c| matcher.iter().position(|&m| m == c).unwrap())
+                    .collect()
+            }
+            Self::CamelPokerWithJokers => {
+                let matcher = [
+                    Card::J,
+                    Card::Two,
+                    Card::Three,
+                    Card::Four,
+                    Card::Five,
+                    Card::Six,
+                    Card::Seven,
+                    Card::Eight,
+                    Card::Nine,
+                    Card::T,
+                    Card::Q,
+                    Card::K,
+                    Card::A,
+                ];
+                cards_in_hand
+                    .iter()
+                    .map(|&c| matcher.iter().position(|&m| m == c).unwrap())
+                    .collect()
+            }
+        }
+    }
+
+    fn score_cards(&self, cards_in_hand: &[Card]) -> (HandType, Vec<usize>) {
+        (
+            self.get_handtype(&Self::count_cards(cards_in_hand)),
+            self.get_card_ranks(cards_in_hand),
+        )
+    }
+
+    fn count_cards(cards_in_hand: &[Card]) -> HashMap<Card, usize> {
+        cards_in_hand.iter().fold(HashMap::new(), |mut map, card| {
+            *map.entry(*card).or_insert(0) += 1;
+            map
+        })
+    }
+
+    fn get_handtype(&self, card_counts: &HashMap<Card, usize>) -> HandType {
+        match self {
+            Self::CamelPokerWithoutJokers => {
+                let mut counts: Vec<&usize> = card_counts.values().collect();
+                counts.sort_unstable();
+                match counts.pop().unwrap() {
+                    5 => HandType::FiveOfAKind,
+                    4 => HandType::FourOfAKind,
+                    3 => match counts.pop().unwrap() {
+                        2 => HandType::FullHouse,
+                        1 => HandType::ThreeOfAKind,
+                        _ => panic!("Impossible outcome"),
+                    },
+                    2 => match counts.pop().unwrap() {
+                        2 => HandType::TwoPair,
+                        1 => HandType::OnePair,
+                        _ => panic!("Impossible outcome"),
+                    },
+                    1 => HandType::HighCard,
+                    _ => panic!("Impossible outcome"),
+                }
+            }
+            Self::CamelPokerWithJokers => {
+                let mut mutable_card_count = card_counts.clone();
+                let jokers = mutable_card_count.remove(&Card::J).unwrap_or(0);
+                let mut counts: Vec<&usize> = mutable_card_count.values().collect();
+                counts.sort_unstable();
+                match (jokers, counts.pop().unwrap_or(&0)) {
+                    (5, 0) | (4, 1) | (3, 2) | (2, 3) | (1, 4) | (0, 5) => HandType::FiveOfAKind,
+                    (3, 1) | (2, 2) | (1, 3) | (0, 4) => HandType::FourOfAKind,
+                    (2, 1) => HandType::ThreeOfAKind,
+                    (1, 1) => HandType::OnePair,
+                    (1, 2) | (0, 3) => match counts.pop().unwrap() {
+                        2 => HandType::FullHouse,
+                        1 => HandType::ThreeOfAKind,
+                        _ => panic!("Impossible outcome"),
+                    },
+                    (0, 2) => match counts.pop().unwrap() {
+                        2 => HandType::TwoPair,
+                        1 => HandType::OnePair,
+                        _ => panic!("Impossible scenario"),
+                    },
+                    (0, 1) => HandType::HighCard,
+                    _ => panic!("Impossible scenario"),
+                }
+            }
+        }
+    }
+    fn winnings_in_block(&self, block: &str) -> usize {
+        let mut lines: Vec<(Vec<Card>, usize)> = block
+            .lines()
+            .map(|line| line.split(' ').collect())
+            .map(|elms: Vec<&str>| {
+                (
+                    elms[0]
+                        .chars()
+                        .map(|c| Card::try_from(c).unwrap())
+                        .collect(),
+                    elms[1].parse().unwrap(),
+                )
+            })
+            .collect();
+        lines.sort_unstable_by_key(|tup| self.score_cards(&tup.0));
+        lines
+            .iter()
+            .enumerate()
+            .fold(0, |acc, (n, tup)| acc + (n + 1) * tup.1)
+    }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Hash, Clone, Copy)]
+#[derive(PartialOrd, PartialEq, Eq, Ord, Debug)]
+enum HandType {
+    HighCard,
+    OnePair,
+    TwoPair,
+    ThreeOfAKind,
+    FullHouse,
+    FourOfAKind,
+    FiveOfAKind,
+}
+
+#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
 enum Card {
     Two,
     Three,
@@ -45,111 +180,24 @@ enum Card {
     A,
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Clone, Copy)]
-enum HandType {
-    HighCard,
-    OnePair,
-    TwoPair,
-    ThreeOfAKind,
-    FullHouse,
-    FourOfAKind,
-    FiveOfAKind,
-}
-
 impl Card {
-    fn card_from_str(c: char) -> Self {
+    const fn try_from(c: char) -> Option<Self> {
         match c {
-            '2' => Self::Two,
-            '3' => Self::Three,
-            '4' => Self::Four,
-            '5' => Self::Five,
-            '6' => Self::Six,
-            '7' => Self::Seven,
-            '8' => Self::Eight,
-            '9' => Self::Nine,
-            'T' => Self::T,
-            'J' => Self::J,
-            'Q' => Self::Q,
-            'K' => Self::K,
-            'A' => Self::A,
-            _ => panic!("Unexpected char encountered"),
+            '2' => Some(Self::Two),
+            '3' => Some(Self::Three),
+            '4' => Some(Self::Four),
+            '5' => Some(Self::Five),
+            '6' => Some(Self::Six),
+            '7' => Some(Self::Seven),
+            '8' => Some(Self::Eight),
+            '9' => Some(Self::Nine),
+            'T' => Some(Self::T),
+            'J' => Some(Self::J),
+            'Q' => Some(Self::Q),
+            'K' => Some(Self::K),
+            'A' => Some(Self::A),
+            _ => None,
         }
-    }
-}
-
-impl HandType {
-    fn from_cards(cards: &[Card]) -> Self {
-        let mut occurrences: Vec<usize> = cards
-            .iter()
-            .fold(HashMap::<Card, usize>::new(), |mut m, n| {
-                *m.entry(*n).or_default() += 1;
-                m
-            })
-            .into_values()
-            .collect();
-        occurrences.sort_unstable();
-        match occurrences.pop().unwrap() {
-            5 => Self::FiveOfAKind,
-            4 => Self::FourOfAKind,
-            3 => match occurrences.pop().unwrap() {
-                2 => Self::FullHouse,
-                1 => Self::ThreeOfAKind,
-                _ => panic!("Impossible number from sorted list!"),
-            },
-            2 => match occurrences.pop().unwrap() {
-                2 => Self::TwoPair,
-                1 => Self::OnePair,
-                _ => panic!("Impossible number from sorted list!"),
-            },
-            1 => Self::HighCard,
-            _ => panic!("Impossible number from sorted list!"),
-        }
-    }
-}
-
-impl Hand {
-    fn from_word(word: &str) -> Self {
-        let cards: Vec<Card> = word.chars().map(Card::card_from_str).collect();
-        Self {
-            cards: cards.clone(),
-            handtype: HandType::from_cards(&cards),
-        }
-    }
-}
-
-impl PartialEq for Hand {
-    fn eq(&self, other: &Self) -> bool {
-        self.cards == other.cards
-    }
-}
-
-impl Game {
-    fn from_line(line: &str) -> Self {
-        let words: Vec<&str> = line.split(' ').collect();
-        Self {
-            hand: Hand::from_word(words[0]),
-            bid: words[1].parse().unwrap(),
-        }
-    }
-}
-
-impl PartialEq for Game {
-    fn eq(&self, other: &Self) -> bool {
-        self.hand == other.hand
-    }
-}
-
-#[allow(clippy::non_canonical_partial_ord_impl)]
-impl PartialOrd for Game {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.hand.partial_cmp(&other.hand)
-    }
-}
-
-impl Eq for Game {}
-impl Ord for Game {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap()
     }
 }
 
@@ -169,29 +217,7 @@ QQQJA 483";
     }
 
     #[test]
-    fn day7_hand_orderings() {
-        assert_eq!(Hand::from_word("AAKKK") > Hand::from_word("KKQQQ"), true);
-        assert_eq!(Hand::from_word("KKQQQ") == Hand::from_word("KKQQQ"), true);
-        assert_eq!(Hand::from_word("QKKQQ") < Hand::from_word("KKQQQ"), true);
-        assert_eq!(Hand::from_word("AKQJT") < Hand::from_word("22333"), true);
-        assert_eq!(Hand::from_word("KK677") > Hand::from_word("KTJJT"), true);
-    }
-
-    #[test]
-    fn day7_game_ordering() {
-        let games: Vec<Game> = INPUT.lines().map(Game::from_line).collect();
-        let mut ordered_games = games.to_owned();
-        ordered_games.sort();
-        println!("{ordered_games:?}");
-        assert_eq!(
-            vec![
-                games[0].clone(),
-                games[3].clone(),
-                games[2].clone(),
-                games[1].clone(),
-                games[4].clone()
-            ] == ordered_games,
-            true
-        );
+    fn day7_part2_test() {
+        assert_eq!(part2(INPUT), 5905);
     }
 }
