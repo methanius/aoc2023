@@ -3,6 +3,9 @@ name = "aoc2023"
 version = "0.1.0"
 edition = "2021"
 
+[dependencies]
+num = "*"
+
 [lints.clippy]
 all = "warn"
 pedantic = "warn"
