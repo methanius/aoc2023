@@ -113,7 +113,7 @@ mod test {
 #...#.....";
 
     #[test]
-    fn day10_part1() {
+    fn day11_part1() {
         let pre_expansion_coordinates: Vec<(i64, i64)> = parse_block_to_star_pairs(INPUT1);
         assert_eq!(
             pre_expansion_coordinates,

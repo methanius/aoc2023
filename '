@@ -1,0 +1,82 @@
+use std::iter::zip;
+
+fn main() {
+    let text =
+        std::fs::read_to_string("data/12a.txt").expect("Couldn't read file at hard-coded path!");
+    // println!("Part one result: {:?}", part1(&text));
+    // println!("Part two result: {:?}", part2(&text));
+}
+
+// fn part2(block: &str) -> i64 {}
+
+// fn part1(block: &str) -> i64 {}
+
+fn count(symbols: &str, nums: &[usize]) -> usize {
+    if symbols.len() == 0 {
+        if nums.len() == 0 {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+
+    if nums.len() == 0 {
+        if symbols.contains('#') {
+            return 0;
+        } else {
+            return 1;
+        }
+    }
+
+    let mut result = 0;
+
+    if ".?".to_owned().contains(symbols.chars().next().unwrap()) {
+        result += count(&symbols[1..], nums);
+    }
+
+    if "#?".contains(*symbols.chars().next().unwrap()) {
+        if nums.first().unwrap() <= &symbols.len()
+            && !symbols[0..(*nums.first().unwrap())].contains(&'.')
+            && (*nums.first().unwrap() == symbols.len() || symbols[*nums.first().unwrap()] != '#')
+        {
+            result += count(&symbols[(nums.first().unwrap() + 1)..], &nums[1..]);
+        }
+    }
+    result
+}
+
+fn parse_block_to_strings_et_nums(block: &str) -> Vec<(&str, Vec<usize>)> {
+    let nums: Vec<Vec<usize>> = block
+        .lines()
+        .map(|l| {
+            l.split(' ')
+                .last()
+                .unwrap()
+                .split(',')
+                .map(|c| c.parse().unwrap())
+                .collect()
+        })
+        .collect();
+    let blocks: Vec<&str> = block
+        .lines()
+        .map(|l| l.split(' ').next().unwrap())
+        .collect();
+    zip(blocks, nums).collect()
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    const INPUT1: &str = "\
+???.### 1,1,3
+.??..??...?##. 1,1,3
+?#?#?#?#?#?#?#? 1,3,1,6
+????.#...#... 4,1,1
+????.######..#####. 1,6,5
+?###???????? 3,2,1";
+
+    #[test]
+    fn day12_part1() {
+        assert_eq!(parse_block_to_strings_et_nums(INPUT1).iter().map(|(chars, nums)| count(chars.chars().collect(), nums)), vec![1, 4, 1, 1, 4, 10])
+    }
+}

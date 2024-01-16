@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 num = "*"
+cached = "*"
 
 [lints.clippy]
 all = "warn"
