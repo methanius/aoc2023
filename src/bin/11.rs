@@ -2,15 +2,25 @@ fn main() {
     let text =
         std::fs::read_to_string("data/11a.txt").expect("Couldn't read file at hard-coded path!");
     println!("Part one result: {:?}", part1(&text));
-    // println!("Part two result: {:?}", part2(&text));
+    println!("Part two result: {:?}", part2(&text));
 }
 
-// fn part2(block: &str) -> i64 {
-//     0
-// }
+fn part2(block: &str) -> i64 {
+    let stars = expand_empty_space(&parse_block_to_star_pairs(block), 999_999);
+    stars
+        .iter()
+        .enumerate()
+        .flat_map(|(n, star)| {
+            stars[(n + 1)..]
+                .iter()
+                .map(|(row, col)| (row - star.0).abs() + (col - star.1).abs())
+                .collect::<Vec<i64>>()
+        })
+        .sum()
+}
 
 fn part1(block: &str) -> i64 {
-    let stars = expand_empty_space(&parse_block_to_star_pairs(block));
+    let stars = expand_empty_space(&parse_block_to_star_pairs(block), 1);
     stars
         .iter()
         .enumerate()
@@ -40,7 +50,7 @@ fn parse_block_to_star_pairs(block: &str) -> Vec<(i64, i64)> {
         .collect()
 }
 
-fn expand_empty_space(stars: &[(i64, i64)]) -> Vec<(i64, i64)> {
+fn expand_empty_space(stars: &[(i64, i64)], expansion: i64) -> Vec<(i64, i64)> {
     let max_row = *stars.iter().map(|(row, _)| row).max().unwrap();
     let max_col = *stars.iter().map(|(_, col)| col).max().unwrap();
     let mut new_stars: Vec<(i64, i64)> = stars.to_vec();
@@ -54,7 +64,13 @@ fn expand_empty_space(stars: &[(i64, i64)]) -> Vec<(i64, i64)> {
         {
             new_stars = new_stars
                 .into_iter()
-                .map(|(row, col)| if row > n { (row + 1, col) } else { (row, col) })
+                .map(|(row, col)| {
+                    if row > n {
+                        (row + expansion, col)
+                    } else {
+                        (row, col)
+                    }
+                })
                 .collect();
         }
     }
@@ -68,7 +84,13 @@ fn expand_empty_space(stars: &[(i64, i64)]) -> Vec<(i64, i64)> {
         {
             new_stars = new_stars
                 .into_iter()
-                .map(|(row, col)| if col > n { (row, col + 1) } else { (row, col) })
+                .map(|(row, col)| {
+                    if col > n {
+                        (row, col + expansion)
+                    } else {
+                        (row, col)
+                    }
+                })
                 .collect();
         }
     }
@@ -108,7 +130,7 @@ mod test {
             ]
         );
         assert_eq!(
-            expand_empty_space(&pre_expansion_coordinates),
+            expand_empty_space(&pre_expansion_coordinates, 1),
             vec![
                 (0, 4),
                 (1, 9),
